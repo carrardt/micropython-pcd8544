@@ -199,3 +199,36 @@ class PCD8544_FRAMEBUF(PCD8544):
 
 	def show(self):
 		self.data(self.buf)
+
+# for clearer and smaller text.
+# It uses the same 8x5 font as used in arduino libraries
+# the file font8x5.bin stores 5 bytes of data (for 5 pixels wide characters)
+# for each of 96 ASCII characters starting from character ' ' (ASCII code 32).
+# font8x5.bin can be found here :
+# https://github.com/carrardt/TiPiDuino/raw/refs/heads/main/tools/bitmap/font8x5.bin
+# Note: text printed with println function scrolls,
+# thanks to screen member storing previous text lines
+class PCD8544_BM8x5(PCD8544):
+  def __init__(self, spi, cs, dc, rst=None):
+    super().__init__(spi, cs, dc, rst)
+    self.font8x5 = open('font8x5.bin','rb').read()
+    self.screen = []
+
+  def text(self, col, row, s):
+    self.position(col,row)
+    for c in s:
+      ci = (ord(c)-ord(' '))*5
+      if (ci+5)>len(self.font8x5): ci = 0
+      cbm=bytearray(self.font8x5[ci:ci+5])
+      cbm.append(0x00)
+      self.data(cbm)
+
+  def println(self,s):
+    if len(self.screen)>=6:
+      self.screen.pop(0)
+    self.screen.append(s[:14])
+    r=0
+    self.clear()
+    for l in self.screen:
+      self.text(0,r,l)
+      r=r+1
